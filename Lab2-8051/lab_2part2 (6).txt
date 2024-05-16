@@ -1,0 +1,274 @@
+input: DB 'INPUT = ',0
+
+ORG 0
+	MOV TMOD,#01H
+	acall CONFIGURE_LCD
+	MOV DPTR,#input
+	CLR A
+	MOVC A,@A+DPTR
+
+sendlcd: 
+	ACALL SEND_DATA
+	CLR A
+	INC DPTR
+	MOVC A,@A+DPTR
+	CJNE A,0,sendlcd
+	MOV DPTR,#0B
+	
+take_input:
+      ACALL KD
+      MOV R1,A
+      ACALL SEND_DATA
+      CLR A
+      ACALL kd
+      CJNE A,#'#',digit_2
+      CLR A
+      MOV A,R1
+      MOV R0,A
+      MOV R1,#00h
+      MOV R6,#05h
+      SJMP gerisay
+      
+Digit_2:
+       MOV R0,A
+       ACALL SEND_DATA
+       
+turn:
+   	ACALL Kd
+	CJNE A,#'#',turn
+	CLR A
+	MOV A,R0
+	CLR A
+	MOV A,R1
+	ACALL send_data
+	CLR A
+	MOV A,R0
+	ACALL SEND_DATA
+	MOV A,#20H; space
+	ACALL SEND_DATA
+	MOV A,#53H;s
+	ACALL SEND_DATA
+	MOV A,#45H;e
+	ACALL SEND_DATA
+	MOV A,#43H;c
+	ACALL SEND_DATA
+	CLR A
+       MOV A,R0
+       CJNE A,#30h,start
+       MOV R0,#3ah
+       MOV R1,#00h
+       sjmp start
+
+start:
+MOV R6,#05h
+
+gerisay:
+	CLR A
+	MOV R3,#0Ah
+
+reload:
+	MOV TH0,#0DFH
+	MOV TL0,#2CH
+	CLR TF0
+	SETB TR0
+
+loophere:
+	JNB TF0 ,loophere
+	DEC R3
+	CJNE R3,#00h,reload
+	CLR TR0
+	CLR A
+	MOV A,R6
+	CJNE A,#05h,full
+
+yarim_saniye:
+	DEC R0
+	ACALL CONFIGURE_LCD
+	CLR A
+	MOV A,R1
+	ACALL send_data; değerler yollanıyor
+	CLR A
+	MOV A,R0
+	ACALL SEND_DATA; değerler yollanıyor
+	CLR A
+	MOV A,#2Eh
+	ACALL SEND_DATA
+	MOV A,#35H
+	ACALL SEND_DATA
+	MOV A,#20H
+	ACALL SEND_DATA
+	MOV A,#53H
+	ACALL SEND_DATA
+	MOV A,#45H
+	ACALL SEND_DATA
+	MOV A,#43H
+	ACALL SEND_DATA
+	MOV R6,#09h
+	SJMP gerisay
+
+full:
+	ACALL CONFIGURE_LCD
+	MOV A,R1
+	ACALL send_data
+	CLR A
+	MOV A,R0
+	ACALL SEND_DATA
+	MOV A,#20H
+	ACALL SEND_DATA
+	MOV A,#53H
+	ACALL SeND_DATA
+	MOV A,#45H
+	ACALL SEND_DATA
+	MOV A,#43H
+	ACALL SEND_DATA
+	MOV R6,#05h
+	CLR A
+	MOV A,R0
+	CJNE A,#30h,gerisay
+	MOV A,R1
+
+jump_10:
+	CJNE A,#31h,finish
+	MOV R0,#3Ah
+	MOV R1,#00h
+	SJMP gerisay
+
+finish:CJNE A,#30h,SON
+
+SON:
+	CLR A
+	Acall send_data
+	ACALL CONFIGURE_LCD
+	CLR A
+	MOV A,#6CH
+	ACALL SEND_DATA
+	MOV A,#61H
+	ACALL SEND_DATA
+	MOV A,#75H
+	ACALL SEND_DATA
+	MOV A,#6EH
+	ACALL SEND_DATA
+	MOV A,#63H
+	ACALL SEND_DATA
+	MOV A,#68H
+	ACALL SEND_DATA
+	MOV A,#21h
+	ACALL SEND_DATA
+
+sjmp $
+
+
+
+
+CONFIGURE_LCD:	;THIS SUBROUTINE SENDS THE INITIALIZATION COMMANDS TO THE LCD
+	mov a,#38H	;TWO LINES, 5X7 MATRIX
+	acall SEND_COMMAND
+	mov a,#0FH	;DISPLAY ON, CURSOR BLINKING
+	acall SEND_COMMAND
+	mov a,#06H	;INCREMENT CURSOR (SHIFT CURSOR TO RIGHT)
+	acall SEND_COMMAND
+	mov a,#01H	;CLEAR DISPLAY SCREEN
+	acall SEND_COMMAND
+	mov a,#80H	;FORCE CURSOR TO BEGINNING OF THE FIRST LINE
+	acall SEND_COMMAND
+	ret
+
+
+
+SEND_COMMAND: ;THIS SUBROUTINE SENDS THE LCD COMMANDS TO THE LCD
+	mov p1,a		;THE COMMAND IS STORED IN A, SEND IT TO LCD
+	clr p3.5		;RS=0 BEFORE SENDING COMMAND
+	clr p3.6		;R/W=0 TO WRITE
+	setb p3.7	;SEND A HIGH TO LOW SIGNAL TO ENABLE PIN
+	acall DELAY
+	clr p3.7
+	ret
+
+
+SEND_DATA: ;THIS SUBROUTINE SENDS DATA TO BE DISPLAYED IN AN ASCII FORMAT TO THE LCD
+	mov p1,a		;SEND THE DATA STORED IN A TO LCD
+	setb p3.5	;RS=1 BEFORE SENDING DATA
+	clr p3.6		;R/W=0 TO WRITE
+	setb p3.7	;SEND A HIGH TO LOW SIGNAL TO ENABLE PIN
+	acall DELAY
+	clr p3.7
+	ret
+
+
+DELAY:
+	push 0
+	push 1
+	mov r0,#50
+DELAY_OUTER_LOOP:
+	mov r1,#255
+	djnz r1,$
+	djnz r0,DELAY_OUTER_LOOP
+	pop 1
+	pop 0
+	ret
+	
+KD: ; takes the key pressed from the keyboard and puts it to A
+	mov	P0, #0ffh	;makes P0 input
+K1:
+	mov	P2, #0	;ground all rows
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, K1
+K2:
+	acall	DELAY
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, KB_OVER
+	sjmp	K2
+KB_OVER:
+	acall DELAY
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, KB_OVER1
+	sjmp	K2
+KB_OVER1:
+	mov	P2, #11111110B
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, ROW_0
+	mov	P2, #11111101B
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, ROW_1
+	mov	P2, #11111011B
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, ROW_2
+	mov	P2, #11110111B
+	mov	A, P0
+	anl	A, #00001111B
+	cjne	A, #00001111B, ROW_3
+	ljmp	K2
+	
+ROW_0:
+	mov	DPTR, #KCODE0
+	sjmp	KB_FIND
+ROW_1:
+	mov	DPTR, #KCODE1
+	sjmp	KB_FIND
+ROW_2:
+	mov	DPTR, #KCODE2
+	sjmp	KB_FIND
+ROW_3:
+	mov	DPTR, #KCODE3
+KB_FIND:
+	rrc	A
+	jnc	KB_MATCH
+	inc	DPTR
+	sjmp	KB_FIND
+KB_MATCH:
+	clr	A
+	movc	A, @A+DPTR; get ASCII code from the table 
+	ret
+;ASCII look-up table 
+KCODE0:    DB    '1', '2', '3', 'A'
+KCODE1:    DB    '4', '5', '6', 'B'
+KCODE2:    DB    '7', '8', '9', 'C'
+KCODE3:    DB    '*', '0', '#', 'D'
+
+END

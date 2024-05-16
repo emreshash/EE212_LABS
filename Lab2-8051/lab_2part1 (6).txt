@@ -1,0 +1,96 @@
+ORG 0
+
+    timerset:; timer 0 and timer 1 is in mode 1 00010001 =11h must be loaded
+        MOV TMOD, #11H
+
+    switch_check:
+        MOV C, P2.0
+        JC M1
+
+    M0:
+    	 ;START SECOND TIMER FOR 380 HZ
+        MOV TL1, #0DCh
+        MOV TH1, #0FAH
+        SETB TCON.6 ;TR1
+        ; WHEN SWITCH IS CLOSED THIS PART WILL BE USED
+        ;START FIRST timer FOR 190 HZ
+        MOV TL0, #0B8H
+        MOV TH0, #0F5H
+        SETB TCON.4 ;TR0
+
+    M0_LOOP:
+        MOV C, P2.0
+        JC M1
+        JB TCON.5, T_0 ;TF0 1 İSE
+        JB TCON.7, T_1 ;TF1 1 İSE
+        SJMP M0_LOOP
+
+    T_0:
+        CPL P2.6
+        CLR TCON.5 ; AFTER EACH LOOP CLEAR FLAG 0
+        MOV TL0, #0B8H
+        MOV TH0, #0F5H
+        SJMP M0_LOOP
+
+    T_1:
+        CPL P2.7
+        CLR TCON.7 ; TF1 AFTER EACH LOOP CLEAR FLAG
+        MOV TL1, #0DCH
+        MOV TH1, #0FAH
+        SJMP M0_LOOP
+
+    M1:
+    	SETB P2.6
+        CLR TCON.7 ;TF1
+        SETB P2.7
+        CLR TCON.5 ;TF0
+        MOV TL0, #94H
+        MOV TH0, #0F0H
+        SETB TCON.4 ;TR0 ; 1/4 LÜK VE 3/4 LÜK DALGA DEĞERLERİYLE TİMERLARI BAŞLAT
+        MOV TL1, #49H
+        MOV TH1, #0F8H
+        SETB TCON.6 ;TR1
+
+    M1_l00p:
+        MOV C, P2.0
+        JNC M0
+        JB TCON.5, ts_0 ;TF0
+        JB TCON.7, ts_1 ;TF1
+        SJMP M1_L00P
+
+    ts_0:
+        CPL P2.7
+        CLR TCON.5 ;TF0
+        MOV TL0, #0DCH
+        MOV TH0, #0FAH
+        SJMP M2_L00P
+        
+    ts_1:
+        CPL P2.6
+        CLR TCON.7 ;TF1
+        MOV TL1, #6DH
+        MOV TH1, #0FDH
+        SJMP M2_L00P
+
+
+    M2_l00p:
+        MOV C, P2.0
+        JNC M0
+        JB TCON.5, mode_1_reload1 ;TF0
+        JB TCON.7, mode_1_reload2 ;TF1
+        SJMP  M2_l00p
+
+    mode_1_reload1:
+        CPL P2.7
+        CLR TCON.5 ;TF0
+        MOV TL0, #94H
+        MOV TH0, #0F0H
+        SJMP ts_1
+
+    mode_1_reload2:
+        CPL P2.6
+        CLR TCON.7 ;TF1
+        MOV TL1, #49H
+        MOV TH1, #0F8H
+        SJMP M1_L00P
+END

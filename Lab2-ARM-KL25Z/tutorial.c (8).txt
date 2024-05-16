@@ -1,0 +1,145 @@
+#include <MKL25Z4.H>
+#include <math.h>
+#include <stdio.h>
+#include "t.h"
+
+/*void setupButton(void) {
+    // Enable clock for PORTC
+    SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
+    // Configure pin 3 of PORTC as GPIO with pull-up resistor and interrupt on falling edge
+    PORTC->PCR[buttonPin] = PORT_PCR_MUX(1) | PORT_PCR_PE_MASK | PORT_PCR_PS_MASK | PORT_PCR_IRQC(0x09);
+    // Set interrupt priority for PORTC_IRQn
+    NVIC_SetPriority(PORTC_IRQn, 2);
+    // Clear pending interrupt for PORTC_IRQn
+    NVIC_ClearPendingIRQ(PORTC_IRQn);
+    // Enable interrupt for PORTC_IRQn
+    NVIC_EnableIRQ(PORTC_IRQn);
+}
+
+void PORTC_IRQHandler(void) {
+    // Check if interrupt is triggered by button press
+    if (PORTC->ISFR & (1 << buttonPin)) {
+        // Call buttonPressHandler function
+        buttonPressHandler();
+        // Clear interrupt flag
+        PORTC->ISFR = (1 << buttonPin);
+    }
+}
+
+int main(void) {
+    // Initialize button setup
+    setupButton();
+    // Initialize servo setup
+    setupServo();
+    // Main loop
+    while (1) {
+        // Rotate servo motor
+        rotateServo();
+        // Delay loop
+        for (volatile int i = 0; i < 1000000; ++i) {}
+    }
+}*/
+unsigned int count;
+unsigned int interrupt;
+unsigned int DC;
+unsigned int flag;
+int main (void) {
+__enable_irq(); /* global enable interrupt */
+SysTick->LOAD = 655333; /* reload th0 with 0.5 second*/
+SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;/* enable clock to Port a to use as interrupt input port */
+PORTA->PCR[1] |= PORT_PCR_MUX(1)| PORT_PCR_IRQC(0x0a); /* pick its mission by using pin control register  falling edgedetecting interrupt*/
+//count=0x00000000;/*init count as 0
+/*SIM->SCGC5 |= SIM_SCGC5_PORTB_MASK;      /* enable clock to Port B
+PORTB->PCR[1] = 0x100;    /* portB  pin IS gpio 
+PTB->PDDR |= (3UL << 1)|(3UL << 16);    /* PTA4 PTA5 output  
+PTB->PDOR=(0);*/
+SysTick->LOAD = 655333; /* reload th0 with 0.5 second*/
+
+NVIC_SetPriority(PORTA_IRQn, 0);// Enable interrupt and set priority to the most important
+NVIC_ClearPendingIRQ(PORTA_IRQn);/*  waiting interrupts cleared*/
+NVIC_EnableIRQ(PORTA_IRQn);/* enable specific interrupy*/
+	
+flag =6;/* init flag as 6 since thereare 6 movements in one cycle*/
+pwm();
+SysTick->VAL &= 0x00000000;
+SysTick->CTRL = 3; 
+while (1) {
+}
+}
+void PORTA_IRQHandler(void) {
+if (PORTA->ISFR)	
+	{
+//PTB->PDOR=1;
+interrupt=interrupt +1;
+flag = 6;
+}
+SysTick->VAL &= 0xff000000;
+// clear flag by using masking
+PORTA->ISFR = 0xffffffff;
+
+}
+void SysTick_Handler(void)	{
+if ((interrupt%2)==1){
+		if ((flag%6)==0){
+			DC = 654;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==1){
+			DC = 1089;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==2){
+			DC = 1530;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==3){
+			DC = 1968;
+			flag = flag -1;
+		}
+		else if ((flag%6)==4){
+			DC = 1530;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==5){
+			DC = 1089;
+			flag= flag -1;
+			generator();
+		}
+}
+else{
+			if ((flag%6)==0){
+			DC = 3280;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==1){
+			DC = 2839;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==2){
+			DC = 2399;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==3){
+			DC = 1968;
+			flag -= 1;
+			generator();
+		}
+		else if ((flag%6)==4){
+			DC = 2399;
+			flag = flag -1;
+			generator();
+		}
+		else if ((flag%6)==5){
+			DC = 2839;
+			flag = flag -1;
+			generator();
+		}
+}
+}

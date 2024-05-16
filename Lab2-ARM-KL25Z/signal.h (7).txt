@@ -1,0 +1,99 @@
+#include <MKL25Z4.H>
+#include <math.h>
+#include <stdio.h>
+/*#include "fsl_device_registers.h"
+#include "fsl_common.h"
+#include "fsl_port.h"
+#include "fsl_pwm.h"
+
+#define PWM_MODULE_PWM PWM3
+#define PWM_MODULE_CHANNEL kPWM_PwmB
+
+#define PWM_BASEADDR PWM3
+#define PWM_SRC_CLK_FREQ CLOCK_GetFreq(kCLOCK_BusClk)
+
+#define PWM_FREQ_HZ 1000
+#define PWM_DUTY_CYCLE 50
+
+void BOARD_InitPins(void) {
+    /* Port E Clock Gate Control: Clock enabled 
+    CLOCK_EnableClock(kCLOCK_PortE);
+
+    const port_pin_config_t portE31_pin31_config = {
+        kPORT_PullDisable, // No pull-up/down resistor
+        kPORT_FastSlewRate, // Fast slew rate
+        kPORT_PassiveFilterDisable, // Disable passive filter
+        kPORT_OpenDrainDisable, // Disable open drain
+        kPORT_HighDriveStrength, // High drive strength
+        kPORT_MuxAlt3, // Mux as PWM function
+        kPORT_UnlockRegister, // Unlock GPIO control
+    };
+    PORT_SetPinConfig(PORTE, 31, &portE31_pin31_config);
+}
+
+void PWM_Init(void) {
+    pwm_config_t pwmConfig;
+
+    /* Set the PWM Fault Inputs to be disabled 
+    pwmConfig.faultMode = kPWM_Fault_Disable;
+    /* Set the PWM Fault level to be low true pulses *
+    pwmConfig.faultLevel = kPWM_LowTrue;
+    /* Set the PWM run in DEBUG mode 
+    pwmConfig.enableDebugMode = false;
+    /* Set the PWM clock source selection 
+    pwmConfig.clockSource = kPWM_BusClock;
+    /* Set the master PWM period to 1000 
+    pwmConfig.prescale = kPWM_Prescale_Divide_1;
+    /* Set the PWM clock divider 
+    pwmConfig.initializationControl = kPWM_Initialize_LocalSync;
+    /* Set the PWM period 
+    pwmConfig.period = 1000;
+
+    PWM_Init(PWM_BASEADDR, PWM_MODULE_PWM, &pwmConfig);
+
+    /* Configure the PWM channel 
+    pwm_signal_param_t pwmSignal;
+    pwmSignal.pwmChannel = PWM_MODULE_CHANNEL;
+    pwmSignal.level = kPWM_HighTrue;
+    pwmSignal.dutyCyclePercent = PWM_DUTY_CYCLE;
+
+    PWM_SetupPwm(PWM_BASEADDR, &pwmSignal, 1, kPWM_SignedCenterAligned, PWM_FREQ_HZ, PWM_SRC_CLK_FREQ);
+
+    /* Start the PWM generation 
+    PWM_StartTimer(PWM_BASEADDR);
+}
+
+int main(void) {
+    /* Initialize board hardware 
+    BOARD_InitPins();
+    BOARD_BootClockRUN();
+
+    /* Initialize PWM 
+    PWM_Init();
+
+    while (1) {
+        ...
+    }
+    return 0;
+}
+*/
+unsigned int DC;
+
+void generator(void);
+void pwm(void);
+
+void pwm(void){
+SIM->SCGC5 |= 0x2000; /* enable clock to Port E */
+PORTE->PCR[31] = 0x0300; /* PTE31 used by TPM0 */
+SIM->SCGC6 |= 0x01000000; /* enable clock to TPM0 */
+SIM->SOPT2 |= 0x01000000; /* use MCGFLLCLK as timer counter clock */
+
+}
+void generator (void) {
+
+TPM0->SC = 0; /* disable timer */
+TPM0->CONTROLS[4].CnSC = 0x20 | 0x08; /* edge-aligned, pulse high */
+TPM0->MOD = 26212; /* Set up modulo register for 50Hz */
+TPM0->CONTROLS[4].CnV = DC; /* Set up channel value for duty cycle */
+TPM0->SC = 0x0C; /* enable TPM0 with prescaler /16 */
+}

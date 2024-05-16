@@ -1,0 +1,61 @@
+#include <MKL25Z4.H>
+#include <stdio.h>
+#include <math.h>
+# define led1_pos (4)
+# define led2_pos (5)
+# define led3_pos (16)
+# define led4_pos (17)
+# define sw_1 (1)
+# define sw_2 (2)
+# define sw_3 (12)
+void Delay(volatile unsigned int time_del);
+void counter(void);
+
+void Delay(volatile unsigned int time_del) {
+  while (time_del--) 
+		{
+  }
+	return ;
+}
+
+
+
+void saysay(void){
+	  unsigned int count;
+	  count=0x00000000;
+	  SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;      /* enable clock to Port A*/
+
+    PORTA->PCR[sw_1] = 0x100;    /* porta  pins are gpio */
+	  PORTA->PCR[sw_2] = 0x100;      
+	  PORTA->PCR[sw_3] = 0x100;      
+	  PORTA->PCR[led1_pos ] = 0x100;      
+	  PORTA->PCR[led2_pos ] = 0x100;      
+	  PORTA->PCR[led3_pos ] = 0x100;      
+	  PORTA->PCR[led4_pos ] = 0x100;      
+
+
+    PTA->PDDR |= (3UL << 4)|(3UL << 16);    /* PTA4 PTA5 output  */
+
+	while(1){
+		while(PTA->PDIR & (3UL<<1)){
+			if ((PTA->PDIR & (3UL<<1))==4UL){/*switch control 3 kapali 2açik */
+		Delay(2000000);												/* 1000ms*/				
+	}
+	else if ((PTA->PDIR & (3UL<<1))==2UL){ /*switch control 2 kapali 3açik */
+		Delay(1000000);												/* 500ms*/	
+	}
+	else{/*switch control 3 kapali 2kapali */
+		Delay(500000);												/* 250ms*/	
+	}
+	
+	
+		if ((PTA->PDIR & (1UL<<12))){					/*artiyor mu azaliyor mu*/
+		count+=1;
+	}
+	else{
+		count-=1;
+	}
+	PTA->PDOR=(((count&3UL)<<4)|((count&12UL)<<14)); 
+	}
+	}
+}
